@@ -8,7 +8,7 @@ import {
   applyItemUpdate, sameValue, STATUS, TYPE, PRIORITY, STATUSES, TYPES, PRIORITIES, ROLE, ITEM_SYSTEM_FIELDS,
   defaultBlocks, addDays, todayStr,
 } from '../shared/rules.js';
-import { DEFAULT_SECTIONS, DEFAULT_TASKS } from '../shared/defaults.js';
+import { DEFAULT_SECTIONS, DEFAULT_TASKS, LEGACY_TASK_COUNT } from '../shared/defaults.js';
 import { mergePrefs, cleanPrefs, prepareData, buildForUser } from '../shared/engine.js';
 
 class OpError extends Error {}
@@ -531,7 +531,11 @@ export async function handle(path, { method = 'GET', body, form } = {}) {
     if (p === '/admin/restore') return await restore(body); // متاحة أيضًا من شاشة البداية
     if (!user) throw new ApiError('', 401);
     if (p === '/pull') {
-      return { rev: 1, users: [], companies: [], engagements: [], items: [], comments: [], attachments: [], templates: [],
+      // ترقية القالب الافتراضي غير المعدّل إلى قائمة البنود الموسعة
+      const old = live('templates').find((t) => t.name === 'قالب المكتب الافتراضي' && (t.tasks || []).length === LEGACY_TASK_COUNT);
+      const templates = old ? [update('templates', old.id, { tasks: DEFAULT_TASKS })] : [];
+      await flush();
+      return { rev: 1, users: [], companies: [], engagements: [], items: [], comments: [], attachments: [], templates,
         visibleEngagementIds: live('engagements').map((e) => e.id), visibleCompanyIds: null };
     }
     if (p === '/push') return done({ results: processOps(user, body.ops) });

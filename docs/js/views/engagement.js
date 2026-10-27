@@ -1,7 +1,7 @@
-import { S, mutate, eng, engName, engStats, itemsOf, userName, company, today, scoreOf } from '../store.js';
+import { S, mutate, eng, engName, engStats, itemsOf, userName, company, today, scoreOf, uuid } from '../store.js';
 import { h, raw, openSheet, toast, fmtDate, daysLeftText, options, confirmSheet, downloadUrl, esc, fmtTime } from '../ui.js';
 import { itemList } from '../components.js';
-import { canEditEngagement, canCreateEngagement, daysBetween, ENG_STATUSES, ROLE, isMember } from '../../shared/rules.js';
+import { canEditEngagement, canCreateEngagement, daysBetween, ENG_STATUSES, ROLE, isMember, defaultBlocks, TYPE } from '../../shared/rules.js';
 import { api } from '../api.js';
 import { syncNow } from '../sync.js';
 import { sectionsEditor, readSections } from './settings.js';
@@ -63,7 +63,7 @@ export function render(params, q) {
       </div>
       <div class="chips" style="margin-top:12px">
         <a class="chip" href="#/eng/${e.id}/missing">✉︎ رسالة النواقص</a>
-        ${editable ? h`<a class="chip" href="#/eng/${e.id}/edit">تعديل الملف</a>` : ''}
+        ${editable ? h`<a class="chip" href="#/eng/${e.id}/edit">تعديل الملف</a><button class="chip" data-fromtpl>＋ بنود من القالب</button>` : ''}
         <button class="chip" data-export>تصدير Excel</button>
         <a class="chip" href="#/eng/${e.id}/history">سجل التعديلات</a>
         ${canCreateEngagement(S.me) ? h`<button class="chip" data-rollover>ترحيل لسنة جديدة</button><button class="chip" data-tpl>حفظ كقالب</button>` : ''}
@@ -90,6 +90,7 @@ export function render(params, q) {
         downloadUrl(`/api/export.xlsx?engagement=${e.id}`);
       });
       root.querySelector('[data-rollover]')?.addEventListener('click', () => rolloverSheet(e));
+      root.querySelector('[data-fromtpl]')?.addEventListener('click', () => fromTemplateSheet(e));
       root.querySelector('[data-tpl]')?.addEventListener('click', () => saveTemplateSheet(e));
     },
   };
@@ -115,6 +116,48 @@ function rolloverSheet(e) {
         location.hash = `#/eng/${r.id}`;
       } catch (err) { toast(err.message); }
     }),
+  });
+}
+
+// إضافة بنود القالب الناقصة لملف قائم (المقارنة بالمرجع أو الوصف)
+function fromTemplateSheet(e) {
+  const templates = [...S.data.templates.values()];
+  if (!templates.length) return toast('لا توجد قوالب');
+  const have = itemsOf(e.id);
+  const missingOf = (t) => (t.tasks || []).filter((x) => !have.some((i) => (x.ref && i.ref === x.ref) || i.title === x.title));
+  const draw = (t) => {
+    const list = missingOf(t);
+    return h`<label class="field"><span>القالب</span><select class="inp" data-tpl>${options(templates.map((x) => ({ value: x.id, label: x.name })), t.id)}</select></label>
+      ${list.length ? h`<div class="row" style="margin-bottom:6px"><span class="muted small spacer">${list.length} بند غير موجود في الملف</span><button type="button" class="btn sm" data-all>تحديد الكل</button><button type="button" class="btn sm" data-none>إلغاء الكل</button></div>
+        <div class="list" style="max-height:45dvh;overflow:auto">${list.map((x, k) => h`<label class="it check" style="--c:var(--s-blue)"><input type="checkbox" data-k="${k}" checked>
+          <div class="body"><div class="title">${x.ref ? x.ref + ' · ' : ''}${x.title}</div><div class="sub"><span>${TYPE[x.type]?.label || ''}</span></div></div></label>`)}</div>
+        <button class="btn primary block" data-add style="margin-top:10px">إضافة البنود المحددة</button>`
+        : h`<div class="empty">كل بنود القالب موجودة في الملف</div>`}`;
+  };
+  let tpl = templates[0];
+  openSheet(h`<h2>بنود من القالب</h2><div data-body>${draw(tpl)}</div>`.s, {
+    onMount: (el, close) => {
+      const bind = () => {
+        const body = el.querySelector('[data-body]');
+        body.querySelector('[data-tpl]').addEventListener('change', (ev) => { tpl = S.data.templates.get(ev.target.value); body.innerHTML = draw(tpl).s; bind(); });
+        body.querySelector('[data-all]')?.addEventListener('click', () => body.querySelectorAll('[data-k]').forEach((c) => { c.checked = true; }));
+        body.querySelector('[data-none]')?.addEventListener('click', () => body.querySelectorAll('[data-k]').forEach((c) => { c.checked = false; }));
+        body.querySelector('[data-add]')?.addEventListener('click', async () => {
+          const list = missingOf(tpl);
+          const picked = [...body.querySelectorAll('[data-k]:checked')].map((c) => list[+c.dataset.k]);
+          const codes = new Set((e.sections || []).map((s) => s.code));
+          for (const x of picked) {
+            const sec = codes.has(x.section_code) ? x.section_code : null;
+            await mutate('items', 'create', uuid(), { engagement_id: e.id, section_code: sec, ref: x.ref || null, title: x.title,
+              type: x.type || 'task', priority: x.priority || 'medium', assignee_id: e.in_charge_id || null, status: 'not_started',
+              progress: 0, depends_on: [], blocks_report: defaultBlocks(x.type, sec, e.sections) });
+          }
+          close();
+          toast(`أُضيف ${picked.length} بند`);
+        });
+      };
+      bind();
+    },
   });
 }
 
