@@ -1,9 +1,10 @@
 import { S, mutate, eng, engName, userName, today, addAttachment, uuid, dependentsOf, itemsOf } from '../store.js';
 import { h, raw, toast, fmtDate, fmtTime, options, confirmSheet, statusLabel, openSheet } from '../ui.js';
-import { STATUSES, STATUS, TYPES, PRIORITIES, canApprove, canEditItem, canDeleteItem, addDays, daysBetween } from '/shared/rules.js';
+import { STATUSES, STATUS, TYPES, PRIORITIES, canApprove, canEditItem, canDeleteItem, addDays, daysBetween } from '../../shared/rules.js';
 import { api } from '../api.js';
 import { historyHtml } from './engagement.js';
 import { markRead } from '../sync.js';
+import { LOCAL } from '../config.js';
 
 export function render(params, q) {
   const i = S.data.items.get(params.id);
@@ -108,8 +109,9 @@ export function render(params, q) {
       <div class="card">
         <div class="section-title" style="margin-top:0"><span>المرفقات (${atts.length})</span></div>
         ${atts.map((a) => h`<div class="att">
-          ${a.mime?.startsWith('image/') ? h`<img alt="" loading="lazy" data-img="${a.id}" ${a._local ? raw('data-local') : raw(`src="/api/attachments/${a.id}"`)}>` : h`<div class="ic">${(a.name || '').split('.').pop().slice(0, 4)}</div>`}
-          <div class="nm">${a._local ? h`${a.name} <span class="pill amber">بانتظار الرفع</span>` : h`<a href="/api/attachments/${a.id}" target="_blank" rel="noopener">${a.name}</a>`}
+          ${a.mime?.startsWith('image/') ? h`<img alt="" loading="lazy" data-img="${a.id}" ${a._local || LOCAL ? raw('data-local') : raw(`src="/api/attachments/${a.id}"`)}>` : h`<div class="ic">${(a.name || '').split('.').pop().slice(0, 4)}</div>`}
+          <div class="nm">${a._local && !LOCAL ? h`${a.name} <span class="pill amber">بانتظار الرفع</span>`
+            : LOCAL ? h`<a href="#" data-blob="${a.id}">${a.name}</a>` : h`<a href="/api/attachments/${a.id}" target="_blank" rel="noopener">${a.name}</a>`}
             <div class="hint">${userName(a.uploaded_by)} · ${fmtTime(a.created_at)}</div></div>
           ${!a._local && (a.uploaded_by === S.me.id || approver) ? h`<button class="btn sm" data-delatt="${a.id}">✕</button>` : ''}
         </div>`)}
@@ -189,7 +191,7 @@ export function render(params, q) {
           const file = f.type.startsWith('image/') && f.size > 1.5 * 1024 * 1024 ? await shrinkImage(f) : f;
           await addAttachment(i.id, file);
         }
-        if (files.length) toast(navigator.onLine ? 'جارٍ رفع المرفق…' : 'حُفظ المرفق على الجهاز وسيُرفع عند الاتصال');
+        if (files.length) toast(LOCAL ? 'تم حفظ المرفق' : navigator.onLine ? 'جارٍ رفع المرفق…' : 'حُفظ المرفق على الجهاز وسيُرفع عند الاتصال');
       }));
       root.querySelectorAll('[data-delatt]').forEach((b) => b.addEventListener('click', async () => {
         if (!(await confirmSheet('حذف المرفق', i.status === 'closed' ? 'حذف دليل بعد الاعتماد سيعيد فتح البند.' : 'حذف هذا المرفق؟', 'حذف', true))) return;
@@ -201,6 +203,17 @@ export function render(params, q) {
         const b = await get('blobs', img.dataset.img);
         if (b) img.src = URL.createObjectURL(b.blob);
       }
+      root.querySelectorAll('[data-blob]').forEach((el) => el.addEventListener('click', async (ev) => {
+        ev.preventDefault();
+        const b = await get('blobs', el.dataset.blob);
+        if (!b) return toast('الملف غير موجود على هذا الجهاز');
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(b.blob);
+        a.target = '_blank';
+        a.rel = 'noopener';
+        if (!/^image\/|pdf/.test(b.type || '')) a.download = b.name || 'file';
+        a.click();
+      }));
 
       root.querySelector('[data-comment]').addEventListener('submit', async (ev) => {
         ev.preventDefault();

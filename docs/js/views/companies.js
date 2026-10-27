@@ -1,6 +1,6 @@
 import { S, mutate, uuid, engName, engStats, userName } from '../store.js';
 import { h, openSheet, toast, fmtDate } from '../ui.js';
-import { canManageCompanies, canCreateEngagement, isMember } from '/shared/rules.js';
+import { canManageCompanies, canCreateEngagement, isMember } from '../../shared/rules.js';
 
 export function render(params, q) {
   const term = (q.q || '').trim().toLowerCase();

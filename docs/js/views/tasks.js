@@ -1,7 +1,7 @@
 import { S, activeItems, scoreOf, today, engName, eng, userName } from '../store.js';
 import { h, esc } from '../ui.js';
 import { itemList } from '../components.js';
-import { STATUSES, TYPES, daysBetween } from '/shared/rules.js';
+import { STATUSES, TYPES, daysBetween } from '../../shared/rules.js';
 import { buckets } from './home.js';
 
 const BUCKET_LABEL = { today: 'مهام اليوم', overdue: 'المتأخرة', client: 'طلبات العملاء', review: 'جاهز للمراجعة', rework: 'مطلوب تعديل', stale: 'دون موعد أو تحديث' };

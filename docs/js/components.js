@@ -1,4 +1,5 @@
-import { STATUSES, STATUS, TYPES, PRIORITIES, canApprove, canEditItem, addDays, isMember, defaultBlocks, daysBetween } from '/shared/rules.js';
+import { STATUSES, STATUS, TYPES, PRIORITIES, canApprove, canEditItem, addDays, isMember, defaultBlocks, daysBetween } from '../shared/rules.js';
+import { LOCAL } from './config.js';
 import { S, mutate, eng, engName, userName, company, today, engStats, uuid } from './store.js';
 import { h, raw, esc, dueText, statusChip, openSheet, toast, options, fmtDate, daysLeftText, prLabel } from './ui.js';
 
@@ -165,6 +166,7 @@ export function syncText() {
   const errors = S.outbox.filter((o) => o.error).length;
   if (conflicts) return { cls: 'conflict', t: `تعارض ${conflicts}` };
   if (errors) return { cls: 'error', t: `مرفوض ${errors}` };
+  if (LOCAL) return { cls: '', t: 'محفوظ على الجهاز' };
   if (S.sync.state === 'syncing') return { cls: 'syncing', t: 'مزامنة…' };
   if (S.sync.state === 'offline' || !navigator.onLine) return { cls: 'offline', t: pending ? `دون اتصال · ${pending}` : 'دون اتصال' };
   if (pending) return { cls: 'pending', t: `${pending} بانتظار الرفع` };

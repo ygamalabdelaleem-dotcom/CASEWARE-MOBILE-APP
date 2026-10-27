@@ -2,6 +2,7 @@
 // تعمل عند فتح التطبيق، وعودة الاتصال، والعودة للواجهة، وبعد كل تعديل.
 import { api, ApiError } from './api.js';
 import * as idb from './idb.js';
+import { LOCAL } from './config.js';
 import { S, ENT, emit, rebuildAll, rebuildRow, saveMeta, stripOp, invalidate } from './store.js';
 
 let syncing = false;
@@ -17,13 +18,13 @@ function setSync(state, error = null) {
 
 export function requestSync(delay = 800) {
   clearTimeout(timer);
-  timer = setTimeout(() => syncNow(), delay);
+  timer = setTimeout(() => syncNow(), LOCAL ? 50 : delay);
 }
 
 export async function syncNow({ full = false } = {}) {
   if (!S.me) return;
   if (syncing) { again = true; return; }
-  if (!navigator.onLine) { setSync('offline'); return; }
+  if (!navigator.onLine && !LOCAL) { setSync('offline'); return; }
   syncing = true;
   setSync('syncing');
   try {
@@ -105,7 +106,7 @@ async function upload(op, blocked) {
   try {
     const r = await api(`/api/items/${op.changes.item_id}/attachments`, { method: 'POST', form });
     await removeOp(op);
-    await idb.del('blobs', op.id);
+    if (!LOCAL) await idb.del('blobs', op.id); // في النسخة المحلية يبقى الملف على الجهاز
     S.server.attachments.set(r.row.id, r.row);
     await idb.put('attachments', r.row);
     if (r.item) { S.server.items.set(r.item.id, r.item); await idb.put('items', r.item); rebuildRow('items', r.item.id); }
@@ -126,7 +127,7 @@ async function removeOp(op) {
 async function pull(full) {
   const since = full ? 0 : S.meta.rev || 0;
   const res = await api(`/api/pull?since=${since}`);
-  if (full) for (const e of ENT) { S.server[e] = new Map(); await idb.clear(e); }
+  if (full && !LOCAL) for (const e of ENT) { S.server[e] = new Map(); await idb.clear(e); }
   for (const e of ENT) {
     const rows = res[e] || [];
     for (const r of rows) S.server[e].set(r.id, r);

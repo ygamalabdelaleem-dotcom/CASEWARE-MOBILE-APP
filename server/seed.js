@@ -3,7 +3,7 @@ import { db, insertRow, updateRow, uid, tx, getRow } from './db.js';
 import { hashPassword } from './auth.js';
 import { ensureDefaultTemplate, engagementFromTemplate } from './templates.js';
 import { createItem, updateItem } from './sync.js';
-import { addDays, todayStr } from '../shared/rules.js';
+import { addDays, todayStr } from '../docs/shared/rules.js';
 
 export function seedIfEmpty() {
   const n = db.prepare('SELECT COUNT(*) n FROM users').get().n;

@@ -2,10 +2,11 @@ import { S, setMe, mutate, uuid } from '../store.js';
 import { h, raw, toast, options, confirmSheet, openSheet, fmtTime, downloadUrl, esc } from '../ui.js';
 import { api } from '../api.js';
 import { syncNow, resolveConflict, dismissOp } from '../sync.js';
-import { ROLES, ROLE, TYPES, PRIORITIES } from '/shared/rules.js';
+import { ROLES, ROLE, TYPES, PRIORITIES } from '../../shared/rules.js';
 import { pushCard, mountPushCard } from './notifs.js';
 import { disablePush } from '../push.js';
 import * as idb from '../idb.js';
+import { LOCAL } from '../config.js';
 
 const isAdmin = () => S.me.role === 'admin';
 const isMgr = () => ['admin', 'manager'].includes(S.me.role);
@@ -25,26 +26,33 @@ export function render() {
           isMgr() && ['#/settings/templates', 'القوالب وهيكل الأقسام'],
           isAdmin() && ['#/settings/users', 'المستخدمون والصلاحيات'],
           isAdmin() && ['#/settings/backup', 'النسخ الاحتياطي'],
-          ['password', 'تغيير كلمة المرور'],
+          !LOCAL && ['password', 'تغيير كلمة المرور'],
         ].filter(Boolean).map(([href, label]) => href.startsWith('#')
           ? h`<a class="it" href="${href}"><div class="body"><div class="title">${label}</div></div><span class="muted">‹</span></a>`
           : h`<button class="it" style="width:100%;background:none;border-inline:0;border-bottom:0;text-align:start;cursor:pointer" data-act="${href}"><div class="body"><div class="title">${label}</div></div></button>`)}
       </div>
-      <button class="btn block danger" data-logout>تسجيل الخروج</button>
+      <button class="btn block danger" data-logout>${LOCAL ? 'مسح كل البيانات من هذا الجهاز' : 'تسجيل الخروج'}</button>
       <p class="hint" style="text-align:center;margin-top:16px">متابعة سيزون المراجعة — للمتابعة فقط؛ Caseware يظل مكان تنفيذ وتوثيق المراجعة.</p>`,
     mount(root) {
       root.querySelector('[data-act=export]')?.addEventListener('click', () => {
         if (!navigator.onLine) return toast('التصدير يحتاج اتصالًا');
         downloadUrl('/api/export.xlsx');
       });
-      root.querySelector('[data-act=password]').addEventListener('click', passwordSheet);
+      root.querySelector('[data-act=password]')?.addEventListener('click', passwordSheet);
       root.querySelector('[data-logout]').addEventListener('click', async () => {
+        if (LOCAL) {
+          if (!(await confirmSheet('مسح كل البيانات', 'سيُحذف كل شيء من هذا الجهاز نهائيًا. خذ نسخة احتياطية أولًا من «النسخ الاحتياطي».', 'مسح نهائي', true))) return;
+          await idb.clearAll();
+          location.replace('./#/');
+          location.reload();
+          return;
+        }
         const pending = S.outbox.length;
         if (!(await confirmSheet('تسجيل الخروج', pending ? `يوجد ${pending} تعديل لم يُرفع وسيُحذف من الجهاز.` : 'ستُحذف بيانات المتابعة من هذا الجهاز.', 'خروج', true))) return;
         await disablePush().catch(() => {});
         await api('/api/logout', { method: 'POST' }).catch(() => {});
         await idb.clearAll();
-        location.replace('/#/');
+        location.replace('./#/');
         location.reload();
       });
     },
@@ -149,7 +157,7 @@ export function renderSync() {
     back: true,
     html: h`
       <div class="card"><dl class="kv">
-        <dt>الحالة</dt><dd>${navigator.onLine ? (S.sync.state === 'error' ? `خطأ: ${S.sync.error}` : S.sync.state === 'syncing' ? 'جارٍ…' : 'متصل') : 'دون اتصال — التعديلات تُحفظ على الجهاز'}</dd>
+        <dt>الحالة</dt><dd>${LOCAL ? 'نسخة محلية — كل التعديلات تُحفظ فورًا على هذا الجهاز' : navigator.onLine ? (S.sync.state === 'error' ? `خطأ: ${S.sync.error}` : S.sync.state === 'syncing' ? 'جارٍ…' : 'متصل') : 'دون اتصال — التعديلات تُحفظ على الجهاز'}</dd>
         <dt>آخر مزامنة</dt><dd>${fmtTime(S.meta.lastSync)}</dd>
         <dt>بانتظار الرفع</dt><dd>${pending.length}</dd></dl>
         <div class="btns" style="margin-top:12px"><button class="btn primary" data-sync>مزامنة الآن</button><button class="btn" data-full>إعادة تحميل كامل</button></div></div>
@@ -284,9 +292,9 @@ export function renderUsers() {
 function userSheet(u) {
   openSheet(h`<h2>${u ? 'تعديل مستخدم' : 'مستخدم جديد'}</h2><form>
     <label class="field"><span>الاسم</span><input name="name" required value="${u?.name || ''}"></label>
-    <label class="field"><span>البريد</span><input name="email" type="email" required value="${u?.email || ''}" autocomplete="off"></label>
+    <label class="field"><span>البريد${LOCAL ? ' (اختياري)' : ''}</span><input name="email" type="email" ${LOCAL ? '' : raw('required')} value="${u?.email || ''}" autocomplete="off"></label>
     <label class="field"><span>الدور</span><select name="role">${options(ROLES.map((r) => ({ value: r.key, label: r.label })), u?.role || 'staff')}</select></label>
-    <label class="field"><span>${u ? 'كلمة مرور جديدة (اتركها فارغة)' : 'كلمة المرور'}</span><input name="password" type="password" autocomplete="new-password" ${u ? '' : raw('required minlength="8"')}></label>
+    <label class="field" ${LOCAL ? raw('hidden') : ''}><span>${u ? 'كلمة مرور جديدة (اتركها فارغة)' : 'كلمة المرور'}</span><input name="password" type="password" autocomplete="new-password" ${u || LOCAL ? '' : raw('required minlength="8"')}></label>
     ${u ? h`<label class="check"><input type="checkbox" name="active" ${u.active ? raw('checked') : ''}> نشط</label>` : ''}
     <div class="btns"><button class="btn primary">حفظ</button><button class="btn" type="button" data-close>إلغاء</button></div></form>`.s, {
     onMount: (el, close) => el.querySelector('form').addEventListener('submit', async (e) => {
@@ -306,22 +314,33 @@ export function renderBackup() {
   return {
     title: 'النسخ الاحتياطي',
     back: true,
-    html: h`<div class="card"><p class="small" style="margin-top:0">يحفظ الخادم نسخة تلقائية من قاعدة البيانات يوميًا (آخر 14 نسخة) في مجلد البيانات. يمكنك أيضًا تنزيل نسخة كاملة (JSON) للاحتفاظ بها خارج الخادم.</p>
-        <div class="btns"><button class="btn primary" data-dl>تنزيل نسخة JSON</button><button class="btn" data-now>نسخة على الخادم الآن</button></div>
-        <p class="hint">ملفات المرفقات تُنسخ من مجلد data/uploads على الخادم.</p></div>
-      <div class="card"><b>النسخ على الخادم</b><div data-list class="small"><div class="loading">…</div></div></div>
-      <div class="card"><b>استعادة من ملف JSON</b><p class="hint">تستبدل كل البيانات الحالية (تُحفظ نسخة قبل الاستعادة تلقائيًا).</p>
+    html: h`<div class="card">${LOCAL
+        ? h`<p class="small" style="margin-top:0"><b>مهم:</b> كل البيانات محفوظة على هذا الجهاز فقط. نزّل نسخة احتياطية (تشمل المرفقات) بانتظام واحفظها في iCloud Drive أو أرسلها لنفسك.</p><p class="hint" data-last></p>`
+        : h`<p class="small" style="margin-top:0">يحفظ الخادم نسخة تلقائية من قاعدة البيانات يوميًا (آخر 14 نسخة) في مجلد البيانات. يمكنك أيضًا تنزيل نسخة كاملة (JSON) للاحتفاظ بها خارج الخادم.</p>`}
+        <div class="btns"><button class="btn primary" data-dl>تنزيل نسخة احتياطية</button>${LOCAL ? '' : h`<button class="btn" data-now>نسخة على الخادم الآن</button>`}</div>
+        ${LOCAL ? '' : h`<p class="hint">ملفات المرفقات تُنسخ من مجلد data/uploads على الخادم.</p>`}</div>
+      ${LOCAL ? '' : h`<div class="card"><b>النسخ على الخادم</b><div data-list class="small"><div class="loading">…</div></div></div>`}
+      <div class="card"><b>استعادة من نسخة احتياطية</b><p class="hint">تستبدل كل البيانات الحالية على ${LOCAL ? 'هذا الجهاز' : 'الخادم (تُحفظ نسخة قبل الاستعادة تلقائيًا)'}.</p>
         <input type="file" accept="application/json,.json" data-restore></div>`,
     async mount(root) {
-      root.querySelector('[data-dl]').addEventListener('click', () => downloadUrl('/api/admin/backup'));
+      const last = root.querySelector('[data-last]');
+      const showLast = async () => {
+        if (!last) return;
+        const t = await (await import('../local.js')).lastBackup();
+        last.textContent = t ? `آخر نسخة: ${fmtTime(t)}` : 'لم تُؤخذ نسخة بعد';
+      };
+      showLast();
+      root.querySelector('[data-dl]').addEventListener('click', async () => { await downloadUrl('/api/admin/backup'); showLast(); });
+      const list = root.querySelector('[data-list]');
       const loadList = async () => {
+        if (!list) return;
         try {
           const l = await api('/api/admin/backups');
-          root.querySelector('[data-list]').innerHTML = (l.length ? h`${l.map((b) => h`<div>${b.name} — ${(b.size / 1024).toFixed(0)}KB</div>`)}` : h`<div class="muted">لا توجد بعد</div>`).s;
-        } catch (e) { root.querySelector('[data-list]').textContent = e.message; }
+          list.innerHTML = (l.length ? h`${l.map((b) => h`<div>${b.name} — ${(b.size / 1024).toFixed(0)}KB</div>`)}` : h`<div class="muted">لا توجد بعد</div>`).s;
+        } catch (e) { list.textContent = e.message; }
       };
       loadList();
-      root.querySelector('[data-now]').addEventListener('click', async () => { try { await api('/api/admin/backup-now', { method: 'POST' }); toast('تم'); loadList(); } catch (e) { toast(e.message); } });
+      root.querySelector('[data-now]')?.addEventListener('click', async () => { try { await api('/api/admin/backup-now', { method: 'POST' }); toast('تم'); loadList(); } catch (e) { toast(e.message); } });
       root.querySelector('[data-restore]').addEventListener('change', async (e) => {
         const f = e.target.files[0];
         if (!f || !(await confirmSheet('استعادة النسخة', 'سيتم استبدال كل البيانات الحالية. متابعة؟', 'استعادة', true))) return;
@@ -329,8 +348,8 @@ export function renderBackup() {
           const data = JSON.parse(await f.text());
           const r = await api('/api/admin/restore', { method: 'POST', body: data });
           toast(r.note);
-          await idb.clearAll();
-          setTimeout(() => location.reload(), 1500);
+          if (!LOCAL) await idb.clearAll();
+          setTimeout(() => location.reload(), 1200);
         } catch (err) { toast(err.message || 'ملف غير صالح'); }
       });
     },

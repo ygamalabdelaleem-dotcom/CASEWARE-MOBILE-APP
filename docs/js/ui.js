@@ -1,5 +1,6 @@
-import { STATUS, PRIORITY, TYPE, daysBetween } from '/shared/rules.js';
+import { STATUS, PRIORITY, TYPE, daysBetween } from '../shared/rules.js';
 import { today } from './store.js';
+import { LOCAL } from './config.js';
 
 // ---------- قوالب HTML آمنة ----------
 class Raw { constructor(s) { this.s = s; } toString() { return this.s; } }
@@ -119,11 +120,27 @@ export function formData(form) {
   return out;
 }
 
-export function downloadUrl(url) {
+export async function downloadUrl(url) {
+  if (LOCAL && url.startsWith('/api/')) {
+    try {
+      const { blob, name } = await (await import('./local.js')).file(url);
+      return saveBlob(blob, name);
+    } catch (e) { toast(e.message); return; }
+  }
   const a = document.createElement('a');
   a.href = url;
   a.download = '';
   document.body.append(a);
   a.click();
   a.remove();
+}
+
+export function saveBlob(blob, name) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 60_000);
 }

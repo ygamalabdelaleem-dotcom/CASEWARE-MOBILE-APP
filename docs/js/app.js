@@ -5,6 +5,7 @@ import { h, toast, sheetOpen } from './ui.js';
 import { quickStatus, addItemSheet, syncText } from './components.js';
 import { refreshSubscription } from './push.js';
 import * as idb from './idb.js';
+import { LOCAL } from './config.js';
 import * as home from './views/home.js';
 import * as tasks from './views/tasks.js';
 import * as companies from './views/companies.js';
@@ -105,8 +106,9 @@ function renderLogin() {
   $('syncPill').hidden = true;
   $('settingsBtn').hidden = true;
   $('pageTitle').textContent = 'متابعة سيزون المراجعة';
+  if (LOCAL) return renderOnboarding();
   view.innerHTML = h`<form class="login card" id="loginForm">
-    <img class="logo" src="/icons/icon-192.png" alt="">
+    <img class="logo" src="icons/icon-192.png" alt="">
     <h2>تسجيل الدخول</h2><p class="muted small" style="text-align:center">متابعة الملفات والفريق والمعلقات</p>
     <label class="field"><span>البريد الإلكتروني</span><input name="email" type="email" autocomplete="username" required inputmode="email"></label>
     <label class="field"><span>كلمة المرور</span><input name="password" type="password" autocomplete="current-password" required></label>
@@ -128,6 +130,40 @@ function renderLogin() {
       await syncNow({ full: true });
       refreshSubscription();
     } catch (ex) { err.textContent = ex.message; }
+  });
+}
+
+// النسخة المحلية (GitHub Pages): لا حسابات؛ البيانات على هذا الجهاز فقط.
+function renderOnboarding() {
+  view.innerHTML = h`<form class="login card">
+    <img class="logo" src="icons/icon-192.png" alt="">
+    <h2>أهلًا بك</h2>
+    <p class="muted small" style="text-align:center">بياناتك تُحفظ على هذا الجهاز فقط. خذ نسخة احتياطية من الإعدادات بانتظام.</p>
+    <label class="field"><span>اسمك</span><input name="name" required autocomplete="name"></label>
+    <label class="check"><input type="checkbox" name="demo" checked> ابدأ ببيانات تجريبية (يمكن حذفها لاحقًا)</label>
+    <button class="btn primary block">ابدأ</button>
+    <label class="btn block" style="margin-top:8px">استعادة نسخة احتياطية<input type="file" accept="application/json,.json" data-restore hidden></label>
+  </form>`.s;
+  const start = async () => {
+    await load();
+    render({ force: true });
+    startAutoSync();
+    syncNow();
+  };
+  view.querySelector('form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const f = e.target;
+    if (!f.name.value.trim()) return;
+    const { onboard } = await import('./local.js');
+    await onboard(f.name.value, f.demo.checked);
+    start();
+  });
+  view.querySelector('[data-restore]').addEventListener('change', async (e) => {
+    try {
+      const data = JSON.parse(await e.target.files[0].text());
+      await api('/api/admin/restore', { method: 'POST', body: data });
+      start();
+    } catch (err) { toast(err.message || 'ملف غير صالح'); }
   });
 }
 
@@ -165,10 +201,12 @@ navigator.serviceWorker?.addEventListener('message', (e) => {
 
 async function boot() {
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js').catch((e) => console.warn('SW', e));
+    navigator.serviceWorker.register('sw.js').catch((e) => console.warn('SW', e));
   }
+  if (LOCAL) navigator.storage?.persist?.().catch(() => {});
   await load();
-  if (!S.me) {
+  if (LOCAL) S.lastBackup = await (await import('./local.js')).lastBackup();
+  if (!S.me && !LOCAL) {
     // جلسة قائمة على الخادم دون بيانات محلية؟
     try { const { user } = await api('/api/me'); await setMe(user); } catch { /* يحتاج دخول */ }
   }

@@ -1,0 +1,35 @@
+// قالب افتراضي — عدّل الأكواد والأقسام من الإعدادات لتطابق قالب Caseware في مكتبك.
+export const DEFAULT_SECTIONS = [
+  { code: 'A', name: 'القبول والاستمرار' },
+  { code: 'B', name: 'التخطيط' },
+  { code: 'C', name: 'تقييم المخاطر' },
+  { code: 'D', name: 'مراجعة البنود' },
+  { code: 'E', name: 'الاستكمال' },
+  { code: 'F', name: 'التقرير' },
+];
+
+export const DEFAULT_TASKS = [
+  { section_code: 'A', ref: 'A1', title: 'تقييم قبول/استمرار العميل', type: 'task', priority: 'high' },
+  { section_code: 'A', ref: 'A2', title: 'إقرارات الاستقلالية للفريق', type: 'task', priority: 'high' },
+  { section_code: 'A', ref: 'A3', title: 'خطاب الارتباط موقّع', type: 'doc_request', priority: 'high' },
+  { section_code: 'B', ref: 'B1', title: 'فهم المنشأة وبيئتها ونظام الرقابة', type: 'task', priority: 'medium' },
+  { section_code: 'B', ref: 'B2', title: 'تحديد الأهمية النسبية', type: 'task', priority: 'high' },
+  { section_code: 'B', ref: 'B3', title: 'الإجراءات التحليلية المبدئية', type: 'task', priority: 'medium' },
+  { section_code: 'B', ref: 'B4', title: 'ميزان المراجعة والقوائم المبدئية', type: 'doc_request', priority: 'high' },
+  { section_code: 'C', ref: 'C1', title: 'تقييم مخاطر التحريف الجوهري', type: 'task', priority: 'high' },
+  { section_code: 'C', ref: 'C2', title: 'مناقشة مخاطر الغش', type: 'task', priority: 'medium' },
+  { section_code: 'D', ref: 'D1', title: 'النقدية وما في حكمها — مصادقات البنوك', type: 'doc_request', priority: 'high' },
+  { section_code: 'D', ref: 'D2', title: 'العملاء وأوراق القبض — المصادقات والأعمار', type: 'task', priority: 'high' },
+  { section_code: 'D', ref: 'D3', title: 'المخزون — حضور الجرد والتسعير', type: 'task', priority: 'high' },
+  { section_code: 'D', ref: 'D4', title: 'الأصول الثابتة والإهلاك', type: 'task', priority: 'medium' },
+  { section_code: 'D', ref: 'D5', title: 'الموردون والدائنون', type: 'task', priority: 'medium' },
+  { section_code: 'D', ref: 'D6', title: 'الإيرادات واختبار الفصل الزمني', type: 'task', priority: 'high' },
+  { section_code: 'D', ref: 'D7', title: 'الضرائب (الدخل، القيمة المضافة، كسب العمل)', type: 'task', priority: 'medium' },
+  { section_code: 'D', ref: 'D8', title: 'حقوق الملكية ومحاضر الجمعية ومجلس الإدارة', type: 'doc_request', priority: 'medium' },
+  { section_code: 'E', ref: 'E1', title: 'الأحداث اللاحقة', type: 'task', priority: 'medium' },
+  { section_code: 'E', ref: 'E2', title: 'تقييم الاستمرارية', type: 'task', priority: 'high' },
+  { section_code: 'E', ref: 'E3', title: 'خطاب إقرارات الإدارة', type: 'doc_request', priority: 'high' },
+  { section_code: 'E', ref: 'E4', title: 'ملخص الفروق غير المصححة', type: 'task', priority: 'high' },
+  { section_code: 'F', ref: 'F1', title: 'مسودة التقرير والقوائم المالية', type: 'task', priority: 'high' },
+  { section_code: 'F', ref: 'F2', title: 'مراجعة الشريك / مراجعة جودة الارتباط', type: 'task', priority: 'high' },
+];

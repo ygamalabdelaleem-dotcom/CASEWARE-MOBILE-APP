@@ -1,6 +1,6 @@
 // الحالة المحلية: نسخة الخادم + التعديلات المعلّقة (outbox) = ما يراه المستخدم.
 import * as idb from './idb.js';
-import { applyItemUpdate, todayStr, itemScore, isMember } from '/shared/rules.js';
+import { applyItemUpdate, todayStr, itemScore, isMember } from '../shared/rules.js';
 
 export const ENT = ['users', 'companies', 'engagements', 'items', 'comments', 'attachments', 'templates'];
 

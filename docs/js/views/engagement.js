@@ -1,7 +1,7 @@
 import { S, mutate, eng, engName, engStats, itemsOf, userName, company, today, scoreOf } from '../store.js';
 import { h, raw, openSheet, toast, fmtDate, daysLeftText, options, confirmSheet, downloadUrl, esc, fmtTime } from '../ui.js';
 import { itemList } from '../components.js';
-import { canEditEngagement, canCreateEngagement, daysBetween, ENG_STATUSES, ROLE, isMember } from '/shared/rules.js';
+import { canEditEngagement, canCreateEngagement, daysBetween, ENG_STATUSES, ROLE, isMember } from '../../shared/rules.js';
 import { api } from '../api.js';
 import { syncNow } from '../sync.js';
 import { sectionsEditor, readSections } from './settings.js';

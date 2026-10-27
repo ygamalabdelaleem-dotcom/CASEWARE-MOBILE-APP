@@ -1,8 +1,11 @@
+import { LOCAL } from './config.js';
+
 export class ApiError extends Error {
   constructor(message, status) { super(message); this.status = status; }
 }
 
 export async function api(path, { method = 'GET', body, form } = {}) {
+  if (LOCAL && path.startsWith('/api/')) return (await import('./local.js')).handle(path, { method, body, form });
   const opts = { method, headers: { 'x-app': '1' }, credentials: 'same-origin' };
   if (form) opts.body = form;
   else if (body !== undefined) {

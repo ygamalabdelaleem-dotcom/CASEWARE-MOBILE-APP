@@ -1,8 +1,8 @@
 // غلاف بسيط لـ IndexedDB — التخزين المحلي الدائم للعمل دون اتصال.
 const NAME = 'audit-season';
-const VERSION = 1;
+const VERSION = 2;
 export const STORES = ['users', 'companies', 'engagements', 'items', 'comments', 'attachments', 'templates',
-  'outbox', 'meta', 'blobs', 'notifs'];
+  'outbox', 'meta', 'blobs', 'notifs', 'audit', 'kv'];
 
 let dbp;
 function open() {

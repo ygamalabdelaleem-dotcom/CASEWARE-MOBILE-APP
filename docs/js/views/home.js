@@ -1,7 +1,8 @@
 import { S, activeItems, scoreOf, today, isReviewerOf, eng } from '../store.js';
 import { h, fmtLong, fmtTime } from '../ui.js';
 import { itemList, engCard } from '../components.js';
-import { isMember } from '/shared/rules.js';
+import { isMember, daysBetween, todayStr } from '../../shared/rules.js';
+import { LOCAL } from '../config.js';
 
 export function scopeMine() {
   try { return (localStorage.getItem('scope') || (['admin', 'manager'].includes(S.me.role) ? 'all' : 'mine')) === 'mine'; } catch { return true; }
@@ -33,6 +34,8 @@ export function render() {
   return {
     title: 'الرئيسية',
     html: h`
+      ${LOCAL && S.data.items.size && (!S.lastBackup || daysBetween(S.lastBackup, todayStr()) >= 7)
+        ? h`<a class="banner" href="#/settings/backup" style="display:block;color:inherit">بياناتك على هذا الجهاز فقط — ${S.lastBackup ? 'مر أسبوع على آخر نسخة احتياطية' : 'لم تأخذ نسخة احتياطية بعد'}. اضغط لتنزيل نسخة.</a>` : ''}
       <div class="hello"><b>مرحبًا ${S.me.name.split(' ')[0]}</b><span class="muted small">${fmtLong()} · آخر تحديث ${fmtTime(S.meta.lastSync)}</span></div>
       <form class="search" action="#/tasks" data-search><input type="search" name="q" placeholder="ابحث في البنود والشركات…" enterkeyhint="search"></form>
       <div class="chips"><button class="chip ${mine ? 'on' : ''}" data-scope="mine">مهامي</button><button class="chip ${!mine ? 'on' : ''}" data-scope="all">كل الفريق</button></div>

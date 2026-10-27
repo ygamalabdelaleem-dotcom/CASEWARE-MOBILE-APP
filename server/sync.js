@@ -2,7 +2,7 @@ import { db, SPECS, decode, getRow, insertRow, updateRow, touch, audit, currentR
 import {
   isMember, canManageCompanies, canCreateEngagement, canEditEngagement, canEditItem, canDeleteItem, canApprove,
   applyItemUpdate, sameValue, STATUS, TYPE, PRIORITY, ITEM_SYSTEM_FIELDS, defaultBlocks,
-} from '../shared/rules.js';
+} from '../docs/shared/rules.js';
 
 export class OpError extends Error {}
 

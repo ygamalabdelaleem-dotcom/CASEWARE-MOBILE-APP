@@ -3,7 +3,8 @@ import { h, raw, toast, fmtTime } from '../ui.js';
 import { itemList } from '../components.js';
 import { markRead, fetchNotifs } from '../sync.js';
 import { api } from '../api.js';
-import { pushState, enablePush, isIOS, hasSubscription } from '../push.js';
+import { pushState, enablePush, isIOS, hasSubscription, isStandalone } from '../push.js';
+import { LOCAL } from '../config.js';
 
 const PUSH_STATUS = {
   sent: ['أُرسل', 'green'], held: ['محجوز (الحد اليومي)', 'amber'], failed: ['فشل', 'red'],
@@ -13,6 +14,11 @@ const KIND = { morning: 'ملخص الصباح', group: 'تنبيهات ملف',
   client: 'طلب عميل', review: 'جاهز للمراجعة', escalation: 'تصعيد', weekly: 'مراجعة أسبوعية', test: 'تجريبي' };
 
 export function pushCard() {
+  if (LOCAL) {
+    return h`<div class="banner info">التنبيهات (الملخص الصباحي، الاستحقاق، المتأخر، طلبات العملاء، الجاهز للمراجعة) تُحسب وتظهر هنا <b>عند فتح التطبيق</b>.
+      إشعارات شاشة القفل والتطبيق مغلق تحتاج نسخة الخادم.
+      ${isIOS() && !isStandalone() ? h`<div style="margin-top:6px"><b>للتثبيت:</b> Safari ← زر المشاركة ← «إضافة إلى الشاشة الرئيسية».</div>` : ''}</div>`;
+  }
   const st = pushState();
   if (st === 'needs_install') {
     return h`<div class="banner info"><b>لتفعيل الإشعارات على الآيفون</b>
@@ -54,12 +60,12 @@ export function render(params, q) {
     title: 'الإشعارات',
     html: h`
       ${raw(pushCard().s)}
-      <div class="chips"><a class="chip ${tab === 'inbox' ? 'on' : ''}" href="#/notifs">الصندوق</a><a class="chip ${tab === 'log' ? 'on' : ''}" href="#/notifs?tab=log">سجل الإرسال</a>
+      <div class="chips"><a class="chip ${tab === 'inbox' ? 'on' : ''}" href="#/notifs">الصندوق</a>${LOCAL ? '' : h`<a class="chip ${tab === 'log' ? 'on' : ''}" href="#/notifs?tab=log">سجل الإرسال</a>`}
         <span class="spacer"></span>${tab === 'inbox' && list.some((n) => !n.read_at) ? h`<button class="chip" data-readall>تعليم الكل كمقروء</button>` : ''}</div>
       ${tab === 'inbox'
         ? (list.length ? h`<div class="list">${list.map((n) => h`<a class="notif ${n.read_at ? 'read' : ''}" href="${n.url.startsWith('#/notif/') || n.url.startsWith('#/item/') ? `${n.url}${n.url.includes('?') ? '&' : '?'}nid=${n.id}` : n.url}" data-nid="${n.id}">
             <span class="dot"></span><div class="b"><b>${n.title}</b><div class="small">${n.body}</div><small>${fmtTime(n.created_at)}</small></div></a>`)}</div>`
-          : h`<div class="empty">لا توجد إشعارات بعد. تُنشأ على الخادم حسب جدولك (أيام العمل، بعد موعد الملخص الصباحي، خارج ساعات الهدوء).</div>`)
+          : h`<div class="empty">لا توجد تنبيهات بعد. تُنشأ حسب جدولك (أيام العمل، بعد موعد الملخص الصباحي، خارج ساعات الهدوء).</div>`)
         : h`<div class="card"><p class="hint" style="margin-top:0">الوصول الفوري غير مضمون؛ يعتمد على خدمة Apple/المتصفح وحالة الجهاز. كل التنبيهات محفوظة في الصندوق.</p>
           <table class="log"><tr><th>الوقت</th><th>النوع</th><th>الإرسال</th></tr>${list.map((n) => {
             const [label, cls] = PUSH_STATUS[n.push_status] || [n.push_status || '—', ''];

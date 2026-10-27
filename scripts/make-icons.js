@@ -15,11 +15,11 @@ const icon = (pad, bg = '#0f766e') => `<svg xmlns="http://www.w3.org/2000/svg" v
 const badge = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 72 72"><path d="M18 38l12 12 24-28" fill="none" stroke="#fff" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 
 const out = [
-  ['public/icons/icon-192.png', icon(false), 192],
-  ['public/icons/icon-512.png', icon(false), 512],
-  ['public/icons/icon-maskable-512.png', icon(true), 512],
-  ['public/icons/apple-touch-icon.png', icon(true), 180],
-  ['public/icons/badge-72.png', badge, 72],
+  ['docs/icons/icon-192.png', icon(false), 192],
+  ['docs/icons/icon-512.png', icon(false), 512],
+  ['docs/icons/icon-maskable-512.png', icon(true), 512],
+  ['docs/icons/apple-touch-icon.png', icon(true), 180],
+  ['docs/icons/badge-72.png', badge, 72],
 ];
 const browser = await chromium.launch();
 const page = await browser.newPage();

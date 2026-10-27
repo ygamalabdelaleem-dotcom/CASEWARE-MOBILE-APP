@@ -12,7 +12,7 @@ import { saveTemplate, deleteTemplate, engagementFromTemplate, templateFromEngag
 import { getPrefs, savePrefs, getVapid, pushToUser, runEngine, listNotifications } from './notify.js';
 import { exportXlsx, previewImport, commitImport } from './excel.js';
 import { seedIfEmpty } from './seed.js';
-import { isMember, ROLE } from '../shared/rules.js';
+import { isMember, ROLE } from '../docs/shared/rules.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PORT = Number(process.env.PORT || 3000);
@@ -274,15 +274,14 @@ function snapshot(tag = 'auto') {
 app.use('/api', (req, res) => res.status(404).json({ error: 'غير موجود' }));
 
 // ---------- الملفات الثابتة ----------
-app.use('/shared', express.static(path.join(ROOT, 'shared'), { maxAge: 0 }));
-app.use(express.static(path.join(ROOT, 'public'), {
+app.use(express.static(path.join(ROOT, 'docs'), {
   maxAge: 0,
   setHeaders: (res, p) => {
     if (p.endsWith('sw.js')) res.setHeader('Cache-Control', 'no-cache');
     if (p.endsWith('.webmanifest')) res.setHeader('Content-Type', 'application/manifest+json');
   },
 }));
-app.get('/{*splat}', (req, res) => res.sendFile(path.join(ROOT, 'public', 'index.html')));
+app.get('/{*splat}', (req, res) => res.sendFile(path.join(ROOT, 'docs', 'index.html')));
 
 // ---------- الجدولة على الخادم ----------
 let running = false;

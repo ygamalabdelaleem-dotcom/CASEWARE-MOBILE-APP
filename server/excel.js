@@ -2,7 +2,7 @@ import ExcelJS from 'exceljs';
 import crypto from 'node:crypto';
 import { db, decode, getRow, insertRow, audit, tx, uid } from './db.js';
 import { OpError, createItem, updateItem, createEngagement, visibleEngagements } from './sync.js';
-import { STATUSES, TYPES, PRIORITIES, isMember, canCreateEngagement, canManageCompanies } from '../shared/rules.js';
+import { STATUSES, TYPES, PRIORITIES, isMember, canCreateEngagement, canManageCompanies } from '../docs/shared/rules.js';
 
 const COLS = [
   { key: 'id', header: 'المعرف (لا تعدّله)', width: 12 },
