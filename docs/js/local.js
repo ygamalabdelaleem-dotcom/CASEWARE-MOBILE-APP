@@ -8,7 +8,7 @@ import {
   applyItemUpdate, sameValue, STATUS, TYPE, PRIORITY, STATUSES, TYPES, PRIORITIES, ROLE, ITEM_SYSTEM_FIELDS,
   defaultBlocks, addDays, todayStr,
 } from '../shared/rules.js';
-import { DEFAULT_SECTIONS, DEFAULT_TASKS, LEGACY_TASK_COUNT } from '../shared/defaults.js';
+import { DEFAULT_SECTIONS, DEFAULT_TASKS, LEGACY_TASK_COUNTS } from '../shared/defaults.js';
 import { mergePrefs, cleanPrefs, prepareData, buildForUser } from '../shared/engine.js';
 
 class OpError extends Error {}
@@ -431,11 +431,11 @@ function commitImport(user) {
 const TABLES = ['users', 'companies', 'engagements', 'items', 'comments', 'attachments', 'templates', 'audit', 'kv', 'notifs'];
 const toB64 = (blob) => new Promise((res) => { const r = new FileReader(); r.onload = () => res(r.result); r.readAsDataURL(blob); });
 async function backupFile() {
+  await kvSet('lastBackup', now());
+  S.lastBackup = now();
   const data = { app: 'audit-season-tracker', mode: 'local', at: now(), tables: {}, blobs: [] };
   for (const t of TABLES) data.tables[t] = await idb.getAll(t);
   for (const b of await idb.getAll('blobs')) data.blobs.push({ id: b.id, name: b.name, type: b.type, data: await toB64(b.blob) });
-  await kvSet('lastBackup', now());
-  S.lastBackup = now();
   return { blob: new Blob([JSON.stringify(data)], { type: 'application/json' }), name: `backup-audit-${todayStr()}.json` };
 }
 async function restore(data) {
@@ -532,7 +532,7 @@ export async function handle(path, { method = 'GET', body, form } = {}) {
     if (!user) throw new ApiError('', 401);
     if (p === '/pull') {
       // ترقية القالب الافتراضي غير المعدّل إلى قائمة البنود الموسعة
-      const old = live('templates').find((t) => t.name === 'قالب المكتب الافتراضي' && (t.tasks || []).length === LEGACY_TASK_COUNT);
+      const old = live('templates').find((t) => t.name === 'قالب المكتب الافتراضي' && LEGACY_TASK_COUNTS.includes((t.tasks || []).length));
       const templates = old ? [update('templates', old.id, { tasks: DEFAULT_TASKS })] : [];
       await flush();
       return { rev: 1, users: [], companies: [], engagements: [], items: [], comments: [], attachments: [], templates,

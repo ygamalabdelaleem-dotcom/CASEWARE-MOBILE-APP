@@ -2,7 +2,7 @@ import { db, getRow, insertRow, updateRow, audit, tx, uid, decode } from './db.j
 import { OpError, createEngagement, createItem, getEngagement } from './sync.js';
 import { canCreateEngagement, isMember } from '../docs/shared/rules.js';
 
-import { DEFAULT_SECTIONS, DEFAULT_TASKS, LEGACY_TASK_COUNT } from '../docs/shared/defaults.js';
+import { DEFAULT_SECTIONS, DEFAULT_TASKS, LEGACY_TASK_COUNTS } from '../docs/shared/defaults.js';
 
 export { DEFAULT_SECTIONS, DEFAULT_TASKS };
 
@@ -11,7 +11,7 @@ export function ensureDefaultTemplate(userId) {
   if (n) {
     // ترقية القالب الافتراضي غير المعدّل إلى قائمة البنود الموسعة
     for (const t of db.prepare("SELECT * FROM templates WHERE name = 'قالب المكتب الافتراضي' AND deleted = 0").all().map((r) => decode('templates', r))) {
-      if (t.tasks.length === LEGACY_TASK_COUNT) updateRow('templates', t.id, { tasks: DEFAULT_TASKS }, userId);
+      if (LEGACY_TASK_COUNTS.includes(t.tasks.length)) updateRow('templates', t.id, { tasks: DEFAULT_TASKS }, userId);
     }
     return;
   }

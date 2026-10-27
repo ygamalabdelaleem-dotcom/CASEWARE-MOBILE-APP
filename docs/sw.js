@@ -1,6 +1,6 @@
 // عامل الخدمة: تخزين واجهة التطبيق للعمل دون اتصال + استقبال إشعارات Web Push (نسخة الخادم).
 // بيانات العملاء لا تُخزَّن هنا؛ تُحفظ في IndexedDB.
-const VERSION = 'v1.2.0';
+const VERSION = 'v1.3.0';
 const SHELL = [
   './', 'index.html', 'css/app.css', 'manifest.webmanifest',
   'js/app.js', 'js/api.js', 'js/components.js', 'js/config.js', 'js/idb.js', 'js/local.js', 'js/push.js', 'js/store.js',
